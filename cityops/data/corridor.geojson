@@ -1,0 +1,50 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "seg_1",
+        "congestion": 0.2
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [8.3995, 49.0045],
+          [8.4020, 49.0050],
+          [8.4045, 49.0060]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "seg_2",
+        "congestion": 0.2
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [8.4045, 49.0060],
+          [8.4065, 49.0070],
+          [8.4090, 49.0075]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "seg_3",
+        "congestion": 0.2
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [8.4090, 49.0075],
+          [8.4110, 49.0085],
+          [8.4135, 49.0090]
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CityOps</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/maplibre-gl@3.6.0/dist/maplibre-gl.css"
+    />
+    <style>
+      :root {
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background-color: #0f172a;
+        color: #0f172a;
+      }
+
+      body {
+        margin: 0;
+        background: #f1f5f9;
+      }
+
+      #root {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: minmax(320px, 400px) 1fr;
+        gap: 1.5rem;
+        padding: 1.5rem;
+        box-sizing: border-box;
+      }
+
+      @media (max-width: 960px) {
+        #root {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
