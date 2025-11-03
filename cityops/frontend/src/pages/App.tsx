@@ -7,6 +7,11 @@ type KpiResponse = {
   queue_len_estimate: number;
 };
 
+type StreamPayload = {
+  kpi?: KpiResponse;
+  ts?: number;
+};
+
 const MAP_STYLE_URL = "https://demotiles.maplibre.org/style.json";
 const MAP_CENTER: [number, number] = [8.404, 49.006];
 const MAP_ZOOM = 14;
@@ -61,6 +66,12 @@ const kpiCardStyle: CSSProperties = {
   border: "1px solid rgba(15, 23, 42, 0.06)"
 };
 
+const legendStyle: CSSProperties = {
+  marginTop: "0.5rem",
+  fontSize: "0.9rem",
+  color: "#475569"
+};
+
 const mapWrapperStyle: CSSProperties = {
   position: "relative",
   borderRadius: "1rem",
@@ -108,13 +119,12 @@ export default function App(): JSX.Element {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
 
-  const [kpis, setKpis] = useState<KpiResponse>({
-    eta_ems: 340,
-    travel_time_delta: 0,
-    queue_len_estimate: 120
-  });
+  const [kpi, setKpi] = useState<KpiResponse | null>(null);
+  const [loadingKpi, setLoadingKpi] = useState(true);
+  const [mapLoading, setMapLoading] = useState(true);
+  const [usingWebSocket, setUsingWebSocket] = useState(false);
 
-  const eventActive = kpis.travel_time_delta > 0;
+  const eventActive = !!kpi && kpi.travel_time_delta > 0;
 
   const refreshSegments = useCallback(async () => {
     const map = mapRef.current;
@@ -122,52 +132,57 @@ export default function App(): JSX.Element {
       return;
     }
 
+    setMapLoading((prev) => prev || !map.getSource(SEGMENT_SOURCE_ID));
+
     try {
       const segments = await fetchJson<GeoJSON.FeatureCollection>("/api/map/segments");
       const existingSource = map.getSource(SEGMENT_SOURCE_ID) as GeoJSONSource | undefined;
 
       if (existingSource) {
         existingSource.setData(segments);
-        return;
+      } else {
+        map.addSource(SEGMENT_SOURCE_ID, {
+          type: "geojson",
+          data: segments
+        });
+
+        map.addLayer({
+          id: "segments-line",
+          type: "line",
+          source: SEGMENT_SOURCE_ID,
+          paint: {
+            "line-color": [
+              "interpolate",
+              ["linear"],
+              ["get", "congestion"],
+              0,
+              "#00b341",
+              0.5,
+              "#ffd000",
+              1,
+              "#d02b2b"
+            ],
+            "line-width": 6,
+            "line-cap": "round",
+            "line-join": "round"
+          }
+        });
       }
-
-      map.addSource(SEGMENT_SOURCE_ID, {
-        type: "geojson",
-        data: segments
-      });
-
-      map.addLayer({
-        id: "segments-line",
-        type: "line",
-        source: SEGMENT_SOURCE_ID,
-        paint: {
-          "line-color": [
-            "interpolate",
-            ["linear"],
-            ["get", "congestion"],
-            0,
-            "#00b341",
-            0.5,
-            "#ffd000",
-            1,
-            "#d02b2b"
-          ],
-          "line-width": 6,
-          "line-cap": "round",
-          "line-join": "round"
-        }
-      });
     } catch (error) {
       console.error("Failed to load corridor segments", error);
+    } finally {
+      setMapLoading(false);
     }
   }, []);
 
-  const fetchKpis = useCallback(async () => {
+  const fetchKpiOnce = useCallback(async () => {
     try {
       const data = await fetchJson<KpiResponse>("/api/kpi");
-      setKpis(data);
+      setKpi(data);
     } catch (error) {
       console.error("Failed to fetch KPIs", error);
+    } finally {
+      setLoadingKpi(false);
     }
   }, []);
 
@@ -200,38 +215,118 @@ export default function App(): JSX.Element {
   }, [refreshSegments]);
 
   useEffect(() => {
-    fetchKpis();
-    const intervalId = window.setInterval(fetchKpis, KPI_POLL_INTERVAL);
-    return () => window.clearInterval(intervalId);
-  }, [fetchKpis]);
+    let ws: WebSocket | null = null;
+    let pollInterval: number | null = null;
+    let closedByEffect = false;
+
+    const cleanupPolling = () => {
+      if (pollInterval !== null) {
+        window.clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    };
+
+    const startPolling = () => {
+      if (pollInterval !== null) {
+        return;
+      }
+      setUsingWebSocket(false);
+      fetchKpiOnce();
+      pollInterval = window.setInterval(fetchKpiOnce, KPI_POLL_INTERVAL);
+    };
+
+    const connectWebSocket = () => {
+      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      try {
+        ws = new WebSocket(`${protocol}://${window.location.host}/ws/stream`);
+      } catch (error) {
+        console.warn("WebSocket init failed, falling back to polling", error);
+        startPolling();
+        return;
+      }
+
+      ws.onopen = () => {
+        cleanupPolling();
+        setUsingWebSocket(true);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const payload = JSON.parse(event.data) as StreamPayload;
+          if (payload?.kpi) {
+            setKpi(payload.kpi);
+            setLoadingKpi(false);
+          }
+        } catch (error) {
+          console.error("Failed to parse KPI stream payload", error);
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.warn("WebSocket error, switching to polling", error);
+        ws?.close();
+      };
+
+      ws.onclose = () => {
+        setUsingWebSocket(false);
+        if (!closedByEffect) {
+          startPolling();
+        }
+      };
+    };
+
+    fetchKpiOnce();
+    connectWebSocket();
+
+    return () => {
+      closedByEffect = true;
+      cleanupPolling();
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [fetchKpiOnce]);
 
   const handleToggleEvent = useCallback(async () => {
     const payload = eventActive
       ? { type: "clear", severity: 1 }
-      : { type: "accident", severity: 3, nodeId: "seg_2" };
+      : { type: "accident", severity: 4 };
 
     try {
+      setLoadingKpi(true);
       await fetchJson("/api/event", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
 
-      await Promise.all([fetchKpis(), refreshSegments()]);
+      await Promise.all([fetchKpiOnce(), refreshSegments()]);
     } catch (error) {
       console.error("Failed to toggle event", error);
+      setLoadingKpi(false);
     }
-  }, [eventActive, fetchKpis, refreshSegments]);
+  }, [eventActive, fetchKpiOnce, refreshSegments]);
 
-  const etaMinutes = useMemo(() => formatMinutes(kpis.eta_ems), [kpis.eta_ems]);
-  const travelDeltaSeconds = useMemo(
-    () => formatNumber(kpis.travel_time_delta),
-    [kpis.travel_time_delta]
-  );
-  const queueEstimate = useMemo(
-    () => formatNumber(kpis.queue_len_estimate),
-    [kpis.queue_len_estimate]
-  );
+  const etaDisplay = useMemo(() => {
+    if (loadingKpi || !kpi) {
+      return "Lade?";
+    }
+    return `${formatMinutes(kpi.eta_ems)} min`;
+  }, [kpi, loadingKpi]);
+
+  const travelDeltaDisplay = useMemo(() => {
+    if (loadingKpi || !kpi) {
+      return "Lade?";
+    }
+    return `${formatNumber(kpi.travel_time_delta)} s`;
+  }, [kpi, loadingKpi]);
+
+  const queueDisplay = useMemo(() => {
+    if (loadingKpi || !kpi) {
+      return "Lade?";
+    }
+    return `${formatNumber(kpi.queue_len_estimate)} m`;
+  }, [kpi, loadingKpi]);
 
   return (
     <>
@@ -251,34 +346,34 @@ export default function App(): JSX.Element {
             <span style={{ color: "#64748b", fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               ETA Rettung
             </span>
-            <strong style={{ fontSize: "1.8rem", color: "#0f172a" }}>
-              {etaMinutes} min
-            </strong>
+            <strong style={{ fontSize: "1.8rem", color: "#0f172a" }}>{etaDisplay}</strong>
             <small style={{ color: "#94a3b8" }}>Bezugsgr??e: Baseline 340 s</small>
           </article>
           <article style={kpiCardStyle}>
             <span style={{ color: "#64748b", fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               ? Reisezeit
             </span>
-            <strong style={{ fontSize: "1.8rem", color: "#0f172a" }}>
-              {travelDeltaSeconds} s
-            </strong>
+            <strong style={{ fontSize: "1.8rem", color: "#0f172a" }}>{travelDeltaDisplay}</strong>
             <small style={{ color: "#94a3b8" }}>Zus?tzliche Verz?gerung</small>
           </article>
           <article style={kpiCardStyle}>
             <span style={{ color: "#64748b", fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               Stauwelle
             </span>
-            <strong style={{ fontSize: "1.8rem", color: "#0f172a" }}>
-              {queueEstimate} m
-            </strong>
+            <strong style={{ fontSize: "1.8rem", color: "#0f172a" }}>{queueDisplay}</strong>
             <small style={{ color: "#94a3b8" }}>Sch?tzung der Staul?nge</small>
           </article>
         </div>
+        <p style={legendStyle}>Legende: gr?n gut ? gelb z?h ? rot Stau</p>
+        <small style={{ color: "#94a3b8" }}>
+          Datenquelle: {usingWebSocket ? "WebSocket-Livestream" : "HTTP-Polling"}
+        </small>
       </section>
       <section style={mapWrapperStyle}>
         <div ref={mapContainerRef} style={mapContainerStyle} />
-        <div style={mapOverlayStyle}>GeoJSON-Korridor &bull; MapLibre</div>
+        <div style={mapOverlayStyle}>
+          {mapLoading ? "Lade Kartendaten?" : "GeoJSON-Korridor ? MapLibre"}
+        </div>
       </section>
     </>
   );
