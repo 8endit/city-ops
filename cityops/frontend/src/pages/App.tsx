@@ -18,6 +18,11 @@ const MAP_ZOOM = 14;
 
 const SEGMENT_SOURCE_ID = "segments";
 const KPI_POLL_INTERVAL = 2000;
+const FALLBACK_KPI: KpiResponse = {
+  eta_ems: 340,
+  travel_time_delta: 0,
+  queue_len_estimate: 120
+};
 
 const panelStyle: CSSProperties = {
   display: "flex",
@@ -181,6 +186,7 @@ export default function App(): JSX.Element {
       setKpi(data);
     } catch (error) {
       console.error("Failed to fetch KPIs", error);
+      setKpi((current) => current ?? FALLBACK_KPI);
     } finally {
       setLoadingKpi(false);
     }
@@ -256,9 +262,12 @@ export default function App(): JSX.Element {
           if (payload?.kpi) {
             setKpi(payload.kpi);
             setLoadingKpi(false);
+          } else {
+            setKpi((current) => current ?? FALLBACK_KPI);
           }
         } catch (error) {
           console.error("Failed to parse KPI stream payload", error);
+          setKpi((current) => current ?? FALLBACK_KPI);
         }
       };
 
@@ -309,21 +318,21 @@ export default function App(): JSX.Element {
 
   const etaDisplay = useMemo(() => {
     if (loadingKpi || !kpi) {
-      return "Lade?";
+      return "Lade...";
     }
     return `${formatMinutes(kpi.eta_ems)} min`;
   }, [kpi, loadingKpi]);
 
   const travelDeltaDisplay = useMemo(() => {
     if (loadingKpi || !kpi) {
-      return "Lade?";
+      return "Lade...";
     }
     return `${formatNumber(kpi.travel_time_delta)} s`;
   }, [kpi, loadingKpi]);
 
   const queueDisplay = useMemo(() => {
     if (loadingKpi || !kpi) {
-      return "Lade?";
+      return "Lade...";
     }
     return `${formatNumber(kpi.queue_len_estimate)} m`;
   }, [kpi, loadingKpi]);
@@ -335,11 +344,11 @@ export default function App(): JSX.Element {
           <h1 style={headlineStyle}>CityOps Control</h1>
           <p style={{ margin: "0.35rem 0 0", color: "#475569" }}>
             Live-Einblick in den Musterkorridor von Karlsruhe inklusive KPI-Trends
-            und einer Was-w?re-wenn-Simulation.
+            und einer Was-waere-wenn-Simulation.
           </p>
         </header>
         <button type="button" style={buttonStyle} onClick={handleToggleEvent}>
-          {eventActive ? "Szenario zur?cksetzen" : "Was-w?re-wenn: Unfall @ Knoten X"}
+          {eventActive ? "Szenario zuruecksetzen" : "Was-waere-wenn: Unfall @ Knoten X"}
         </button>
         <div style={kpiGridStyle}>
           <article style={kpiCardStyle}>
@@ -347,24 +356,24 @@ export default function App(): JSX.Element {
               ETA Rettung
             </span>
             <strong style={{ fontSize: "1.8rem", color: "#0f172a" }}>{etaDisplay}</strong>
-            <small style={{ color: "#94a3b8" }}>Bezugsgr??e: Baseline 340 s</small>
+            <small style={{ color: "#94a3b8" }}>Bezugsgroesse: Baseline 340 s</small>
           </article>
           <article style={kpiCardStyle}>
             <span style={{ color: "#64748b", fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
-              ? Reisezeit
+              Delta Reisezeit
             </span>
             <strong style={{ fontSize: "1.8rem", color: "#0f172a" }}>{travelDeltaDisplay}</strong>
-            <small style={{ color: "#94a3b8" }}>Zus?tzliche Verz?gerung</small>
+            <small style={{ color: "#94a3b8" }}>Zusaetzliche Verzoegerung</small>
           </article>
           <article style={kpiCardStyle}>
             <span style={{ color: "#64748b", fontSize: "0.85rem", textTransform: "uppercase", letterSpacing: "0.08em" }}>
               Stauwelle
             </span>
             <strong style={{ fontSize: "1.8rem", color: "#0f172a" }}>{queueDisplay}</strong>
-            <small style={{ color: "#94a3b8" }}>Sch?tzung der Staul?nge</small>
+            <small style={{ color: "#94a3b8" }}>Schaetzung der Staulaenge</small>
           </article>
         </div>
-        <p style={legendStyle}>Legende: gr?n gut ? gelb z?h ? rot Stau</p>
+        <p style={legendStyle}>Legende: gruen gut | gelb zaeh | rot Stau</p>
         <small style={{ color: "#94a3b8" }}>
           Datenquelle: {usingWebSocket ? "WebSocket-Livestream" : "HTTP-Polling"}
         </small>
@@ -372,7 +381,7 @@ export default function App(): JSX.Element {
       <section style={mapWrapperStyle}>
         <div ref={mapContainerRef} style={mapContainerStyle} />
         <div style={mapOverlayStyle}>
-          {mapLoading ? "Lade Kartendaten?" : "GeoJSON-Korridor ? MapLibre"}
+          {mapLoading ? "Lade Kartendaten..." : "GeoJSON-Korridor | MapLibre"}
         </div>
       </section>
     </>

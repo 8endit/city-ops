@@ -1,6 +1,6 @@
 ## CityOps Starterkit
 
-CityOps ist ein leichtgewichtiges Starterprojekt f?r kommunale Einsatzl?sungen mit einem FastAPI-Backend und einer React/Vite-Oberfl?che. Die Anwendung zeigt einen Beispiel-Korridor als GeoJSON, KPI-Karten und eine einfache "Was-w?re-wenn"-Simulation.
+CityOps ist ein leichtgewichtiges Starterprojekt fuer kommunale Einsatzloesungen mit einem FastAPI-Backend und einer React/Vite-Oberflaeche. Die Anwendung zeigt einen Beispiel-Korridor als GeoJSON, KPI-Karten und eine einfache "Was-waere-wenn"-Simulation.
 
 ### Voraussetzungen
 - Node.js >= 18
@@ -24,11 +24,14 @@ npm run dev -- --host
 
 - API Docs: http://localhost:8000/docs
 - Frontend: http://localhost:5173
-- Hinweis: Der Vite-Proxy verhindert CORS-Probleme f?r `/api` und `/ws` w?hrend der lokalen Entwicklung.
-- Codespaces/Remote: Ports 8000 (HTTP) und 5173 (Vite) ver?ffentlichen bzw. weiterleiten.
+- Hinweis: Der Vite-Proxy verhindert CORS-Probleme fuer `/api` und `/ws` waehrend der lokalen Entwicklung.
+- Codespaces/Remote: Ports 8000 (HTTP) und 5173 (Vite) veroeffentlichen bzw. weiterleiten.
 
 ### Smoke-Tests
-- `GET /api/health` ? `{"status":"ok"}`
-- Frontend ?ffnen: Segmente erscheinen initial gr?n, KPIs zeigen Baseline-Werte.
-- Button "Was-w?re-wenn" bet?tigen: KPIs steigen sichtbar, 1?3 Segmente f?rben sich gelb/rot.
+- `GET /api/health` -> `{"status":"ok"}`
+- Frontend oeffnen: Segmente erscheinen initial gruen, KPIs zeigen Baseline-Werte.
+- Button "Was-waere-wenn" betaetigen: KPIs steigen sichtbar, 1-3 Segmente faerben sich gelb/rot.
 - Browser-Konsole bleibt frei von Fehlern.
+
+### Fallback
+- Sollte die KPI-API temporaer nicht erreichbar sein, zeigt das Frontend automatisch Baseline-Werte (ETA 340 s, Delta 0 s, Stauwelle 120 m), bis erneut Daten eintreffen.
