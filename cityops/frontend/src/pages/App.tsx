@@ -8,7 +8,7 @@ type KpiResponse = {
 };
 
 const MAP_STYLE_URL = "https://demotiles.maplibre.org/style.json";
-const MAP_CENTER: [number, number] = [8.404, 49.006];
+const MAP_CENTER: [number, number] = [8.2363, 48.7616];
 const MAP_ZOOM = 14;
 
 const SEGMENT_SOURCE_ID = "segments";
