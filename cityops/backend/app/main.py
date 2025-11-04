@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 APP_ROOT = Path(__file__).resolve().parent
-DATA_PATH = APP_ROOT.parent.parent / "data" / "corridor.geojson"
+DATA_PATH = APP_ROOT.parent.parent / "data" / "baden_baden_corridor.geojson"
 
 
 class EventPayload(BaseModel):

@@ -7,9 +7,9 @@ type KpiResponse = {
   queue_len_estimate: number;
 };
 
-const MAP_STYLE_URL = "https://tiles.stadiamaps.com/styles/osm_bright.json";
+const MAP_STYLE_URL = `https://tiles.stadiamaps.com/styles/osm_bright.json?api_key=${import.meta.env.VITE_STADIA_API_KEY ?? ""}`;
 const MAP_CENTER: [number, number] = [8.2363, 48.7616];
-const MAP_ZOOM = 14;
+const MAP_ZOOM = 13;
 
 const SEGMENT_SOURCE_ID = "segments";
 const KPI_POLL_INTERVAL = 2000;
