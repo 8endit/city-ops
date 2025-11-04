@@ -1,0 +1,50 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lange_strasse_seg_1",
+        "congestion": 0.2
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [8.2296, 48.7576],
+          [8.2324, 48.7592],
+          [8.2352, 48.7609]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lange_strasse_seg_2",
+        "congestion": 0.2
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [8.2352, 48.7609],
+          [8.2378, 48.7622],
+          [8.2411, 48.7636]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "lange_strasse_seg_3",
+        "congestion": 0.2
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [8.2411, 48.7636],
+          [8.2445, 48.7650],
+          [8.2473, 48.7664]
+        ]
+      }
+    }
+  ]
+}
