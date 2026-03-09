@@ -100,6 +100,11 @@ class GameScene extends Phaser.Scene {
             this.scene.launch('UIScene');
         }
 
+        // Launch mobile touch controls overlay
+        if (!this.scene.isActive('MobileScene')) {
+            this.scene.launch('MobileScene');
+        }
+
         // Background decoration — parallax castle silhouette
         this._buildBackground(W, H);
 
@@ -260,6 +265,7 @@ class GameScene extends Phaser.Scene {
 
         var ld = this.levelData;
         this.scene.stop('UIScene');
+        this.scene.stop('MobileScene');
 
         if (ld.nextLevel) {
             this.scene.start('StoryScene', {

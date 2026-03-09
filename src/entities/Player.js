@@ -84,9 +84,10 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             }
         }
 
-        // Horizontal movement
-        var moveLeft  = this.cursors.left.isDown  || this.wasd.left.isDown;
-        var moveRight = this.cursors.right.isDown || this.wasd.right.isDown;
+        // Horizontal movement (keyboard + virtual touch controls)
+        var vc = window.VirtualControls || {};
+        var moveLeft  = this.cursors.left.isDown  || this.wasd.left.isDown  || vc.left;
+        var moveRight = this.cursors.right.isDown || this.wasd.right.isDown || vc.right;
 
         if (!this.isHurt) {
             if (moveLeft) {
@@ -100,10 +101,11 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             }
         }
 
-        // Jump
+        // Jump (keyboard + virtual touch controls)
         var jumpPressed = Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
                           Phaser.Input.Keyboard.JustDown(this.wasd.up)    ||
-                          Phaser.Input.Keyboard.JustDown(this.cursors.space);
+                          Phaser.Input.Keyboard.JustDown(this.cursors.space) ||
+                          vc.jumpJustPressed;
 
         if (jumpPressed) {
             if (onGround) {
@@ -116,9 +118,10 @@ class Player extends Phaser.Physics.Arcade.Sprite {
             }
         }
 
-        // Attack
+        // Attack (keyboard + virtual touch controls)
         var atkPressed = Phaser.Input.Keyboard.JustDown(this.attackKey) ||
-                         Phaser.Input.Keyboard.JustDown(this.altAtkKey);
+                         Phaser.Input.Keyboard.JustDown(this.altAtkKey) ||
+                         vc.attackJustPressed;
         if (atkPressed && !this.isAttacking && this.attackCooldown <= 0) {
             this.startAttack();
         }
