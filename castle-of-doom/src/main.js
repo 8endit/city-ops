@@ -38,6 +38,7 @@ var game = new Phaser.Game({
         MobileScene,
         InventoryScene,
         StoryScene,
+        PauseScene,
         GameOverScene,
         WinScene
     ]

@@ -38,8 +38,7 @@ class GameScene extends Phaser.Scene {
         this.kiri = new KiriCompanion(this, spawnX - 40, spawnY - 20);
         this.player.kiri = this.kiri;
 
-        // Greet the player at level start
-        this._scheduleKiriGreeting();
+        // (level greetings are handled in StoryScene before entering)
 
         // Enemy group
         this.enemies   = this.physics.add.group({ runChildUpdate: true });
@@ -116,6 +115,12 @@ class GameScene extends Phaser.Scene {
 
         if (!this.scene.isActive('UIScene'))     this.scene.launch('UIScene');
         if (!this.scene.isActive('MobileScene')) this.scene.launch('MobileScene');
+
+        // Pause
+        this._pauseKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.P);
+        this._escKey   = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
+        this.input.keyboard.on('keydown-P',   () => this._togglePause());
+        this.input.keyboard.on('keydown-ESC', () => this._togglePause());
 
         this._buildBackground(W, H);
 
@@ -198,6 +203,20 @@ class GameScene extends Phaser.Scene {
                 enemy.attackTimer = 900;
             }
         });
+
+        // Reset one-frame virtual control pulses AFTER all game logic has read them
+        if (window.VirtualControls) {
+            window.VirtualControls.jumpJustPressed   = false;
+            window.VirtualControls.attackJustPressed = false;
+            window.VirtualControls.potionJustPressed = false;
+            window.VirtualControls.kiriJustPressed   = false;
+        }
+    }
+
+    _togglePause() {
+        if (this.scene.isActive('PauseScene')) return;
+        this.scene.pause();
+        this.scene.launch('PauseScene', { from: 'GameScene' });
     }
 
     _platCheck(player, plat) {
@@ -350,15 +369,16 @@ class GameScene extends Phaser.Scene {
         this.boss.onDeath = (x, y, forced) => this._onEnemyDied(x, y, forced);
         this.physics.add.collider(this.boss, this.solidLayer);
 
-        var nameTag = this.add.text(cfg.x, cfg.y - 50, 'DOOM GUARDIAN', {
-            fontSize: '12px', fill: '#ff4444', fontStyle: 'bold'
-        }).setOrigin(0.5, 1).setDepth(6);
+        var bossNames = {
+            LEVEL_1: 'TORWÄCHTER',
+            LEVEL_2: 'KATAKOMBEN-WÄCHTER',
+            LEVEL_3: 'HERR DES VERDERBENS'
+        };
+        var nameTag = this.add.text(cfg.x, cfg.y - 50,
+            bossNames[this.levelKey] || 'WÄCHTER', {
+                fontSize: '12px', fill: '#ff4444', fontStyle: 'bold'
+            }).setOrigin(0.5, 1).setDepth(6);
         this.bossNameTag = nameTag;
-
-        // Kiri warns about boss
-        this.time.delayedCall(500, () => {
-            if (this.kiri) this.kiri.say('Vorsicht! Das ist der Waechter!', 3000);
-        });
     }
 
     _onEnemyDied(x, y, forced) {
