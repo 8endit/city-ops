@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <title>Castle of Doom</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- "Add to Home Screen" hint (shown on Safari iOS, hidden when standalone) -->
+  <div id="pwa-hint">
+    <span id="pwa-hint-text">&#x2191;&nbsp; Teile &rarr; &ldquo;Zum Home-Bildschirm&rdquo; &rarr; App öffnen = Vollbild ohne Browser</span>
+    <button id="pwa-hint-close" onclick="document.getElementById('pwa-hint').style.display='none'">&#x2715;</button>
+  </div>
+
+  <!-- Mobile controls overlay — shown only on touch devices via JS -->
+  <div id="m-ui">
+    <!-- Portrait mode: ask user to rotate -->
+    <div id="m-rotate">
+      <div class="m-rotate-icon">&#x27F3;</div>
+      <div>Bitte Gerät drehen&nbsp;— Landscape</div>
+    </div>
+
+    <!-- Left thumb: directional -->
+    <div id="m-left">
+      <div class="mbtn" id="mbtn-left">&#9664;</div>
+      <div class="mbtn" id="mbtn-right">&#9654;</div>
+    </div>
+
+    <!-- Right thumb: actions -->
+    <div id="m-right">
+      <div id="m-util">
+        <div class="mbtn mbtn-sm" id="mbtn-kiri">&#x1F43E;</div>
+        <div class="mbtn mbtn-sm" id="mbtn-potion">&#x2764;</div>
+      </div>
+      <div id="m-actions">
+        <div class="mbtn mbtn-jump" id="mbtn-jump">&#x2191;</div>
+        <div class="mbtn mbtn-attack" id="mbtn-attack">&#x2694;</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+
+  <!-- Level data (loaded first — no dependencies) -->
+  <script src="src/levels/level1.js"></script>
+  <script src="src/levels/level2.js"></script>
+  <script src="src/levels/level3.js"></script>
+
+  <!-- Utilities -->
+  <script src="src/utils/TileMap.js"></script>
+
+  <!-- Entities (depend on Phaser only) -->
+  <script src="src/entities/Player.js"></script>
+  <script src="src/entities/KiriCompanion.js"></script>
+  <script src="src/entities/EnemyBase.js"></script>
+  <script src="src/entities/EnemyPatrol.js"></script>
+  <script src="src/entities/EnemyChaser.js"></script>
+  <script src="src/entities/EnemyRanged.js"></script>
+  <script src="src/entities/Boss.js"></script>
+
+  <!-- Systems (depend on Phaser + levels) -->
+  <script src="src/systems/LootSystem.js"></script>
+  <script src="src/systems/Inventory.js"></script>
+  <script src="src/systems/CombatSystem.js"></script>
+
+  <!-- Scenes (depend on everything above) -->
+  <script src="src/scenes/BootScene.js"></script>
+  <script src="src/scenes/MenuScene.js"></script>
+  <script src="src/scenes/UIScene.js"></script>
+  <script src="src/scenes/MobileScene.js"></script>
+  <script src="src/scenes/StoryScene.js"></script>
+  <script src="src/scenes/GameOverScene.js"></script>
+  <script src="src/scenes/WinScene.js"></script>
+  <script src="src/scenes/InventoryScene.js"></script>
+  <script src="src/scenes/GameScene.js"></script>
+
+  <!-- Entry point -->
+  <script src="src/main.js"></script>
+
+  <!-- Show PWA install hint on Safari iOS when not already standalone -->
+  <script>
+  (function () {
+    var isIOS        = /iphone|ipad|ipod/i.test(navigator.userAgent);
+    var isStandalone = window.navigator.standalone === true;
+    var isSafari     = /safari/i.test(navigator.userAgent) && !/chrome|crios|fxios/i.test(navigator.userAgent);
+    if (isIOS && isSafari && !isStandalone) {
+      document.getElementById('pwa-hint').style.display = 'block';
+    }
+  })();
+  </script>
+
+  <!-- Mobile touch wiring (runs after VirtualControls is defined by MobileScene.js) -->
+  <script>
+  (function () {
+    if (!('ontouchstart' in window) && navigator.maxTouchPoints < 1) return;
+
+    // Show overlay on touch devices
+    document.getElementById('m-ui').classList.add('active');
+
+    function pressAction(action, down) {
+      var vc = window.VirtualControls;
+      if (!vc) return;
+      if (action === 'left')  { vc.left  = down; return; }
+      if (action === 'right') { vc.right = down; return; }
+      if (down) {
+        if (action === 'jump')   vc.jumpJustPressed   = true;
+        if (action === 'attack') vc.attackJustPressed = true;
+        if (action === 'potion') vc.potionJustPressed = true;
+        if (action === 'kiri')   vc.kiriJustPressed   = true;
+      }
+    }
+
+    [
+      ['mbtn-left',   'left'],
+      ['mbtn-right',  'right'],
+      ['mbtn-jump',   'jump'],
+      ['mbtn-attack', 'attack'],
+      ['mbtn-potion', 'potion'],
+      ['mbtn-kiri',   'kiri']
+    ].forEach(function (pair) {
+      var el     = document.getElementById(pair[0]);
+      var action = pair[1];
+      function dn(e) { e.preventDefault(); pressAction(action, true);  el.classList.add('mbtn-pressed'); }
+      function up(e) { e.preventDefault(); pressAction(action, false); el.classList.remove('mbtn-pressed'); }
+      el.addEventListener('touchstart',  dn, { passive: false });
+      el.addEventListener('touchend',    up, { passive: false });
+      el.addEventListener('touchcancel', up, { passive: false });
+    });
+  })();
+  </script>
+</body>
+</html>
